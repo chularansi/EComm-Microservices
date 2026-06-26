@@ -1,7 +1,4 @@
-﻿using Catalog.API.Products.CreateProduct;
-using Catalog.API.Products.GetProductById;
-
-namespace Catalog.API.Products.GetProducts
+﻿namespace Catalog.API.Products.GetProducts
 {
     public static class GetProductsMappers
     {

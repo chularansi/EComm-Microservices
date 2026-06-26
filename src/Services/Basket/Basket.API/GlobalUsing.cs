@@ -1,0 +1,10 @@
+﻿global using Marten;
+global using BuildingBlocks.CQRS;
+global using Basket.API.Models;
+global using Basket.API.Exceptions;
+global using FluentValidation;
+global using BuildingBlocks.CQRS.Behaviours;
+global using BuildingBlocks.CQRS.Dispatcher;
+global using BuildingBlocks.Exceptions;
+global using Basket.API.Data;
+global using Marten.Pagination;

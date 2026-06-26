@@ -1,6 +1,4 @@
-﻿using Catalog.API.Products.DeleteProduct;
-
-namespace Catalog.API.Products.GetProductById
+﻿namespace Catalog.API.Products.GetProductById
 {
     public static class GetProductByIdMappers
     {

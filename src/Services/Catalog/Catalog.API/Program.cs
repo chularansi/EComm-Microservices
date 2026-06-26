@@ -1,5 +1,3 @@
-using BuildingBlocks.CQRS.Behaviours;
-using BuildingBlocks.CQRS.Dispatcher;
 using Catalog.API.Products;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
