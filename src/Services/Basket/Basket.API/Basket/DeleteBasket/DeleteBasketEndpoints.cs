@@ -4,7 +4,7 @@
     {
         public static void DeleteBasket(this IEndpointRouteBuilder app)
         {
-            app.MapDelete("/basket/{userName}", async (string userName, ISender sender) =>
+            app.MapDelete("/{userName}", async (string userName, ISender sender) =>
             {
                 var result = await sender.Send(new DeleteBasketCommand(userName));
 

@@ -1,5 +1,9 @@
 using Basket.API.Basket;
 using BuildingBlocks.Exceptions.Handler;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+
+//using Microsoft.Extensions.Caching.Distributed;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,9 +26,29 @@ builder.Services.AddMarten(opts =>
 }).UseLightweightSessions();
 
 builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+// Add caching to the BasketRepository using Scrutor's Decorate method
+builder.Services.Decorate<IBasketRepository, CachedBasketRepository>();
+
+// Code below is used to add multiple dependancy injection caching to the BasketRepository in manually.
+//builder.Services.AddScoped<IBasketRepository>(sp => 
+//    new CachedBasketRepository(
+//        sp.GetRequiredService<BasketRepository>(), 
+//        sp.GetRequiredService<IDistributedCache>()
+//    )
+//);
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis")!;
+    //options.InstanceName = "Basket";
+});
 
 //Cross-Cutting Services
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
+
+builder.Services.AddHealthChecks()
+    .AddNpgSql(builder.Configuration.GetConnectionString("Database")!)
+    .AddRedis(builder.Configuration.GetConnectionString("Redis")!);
 
 var app = builder.Build();
 
@@ -34,5 +58,10 @@ app.UseHttpsRedirection();
 app.MapBasketEndpoints();
 
 app.UseExceptionHandler(options => { });
+
+app.UseHealthChecks("/health", 
+    new HealthCheckOptions { 
+        ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+    });
 
 app.Run();

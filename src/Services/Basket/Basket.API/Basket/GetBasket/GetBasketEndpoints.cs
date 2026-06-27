@@ -4,7 +4,7 @@
     {
         public static void GetBasket(this IEndpointRouteBuilder app)
         {
-            app.MapGet("/basket/{userName}", async (string userName, ISender sender) =>
+            app.MapGet("/{userName}", async (string userName, ISender sender) =>
             {
                 var result = await sender.Send(new GetBasketQuery(userName));
 

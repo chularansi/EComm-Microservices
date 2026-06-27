@@ -4,7 +4,7 @@
     {
         public static void StoreBasket(this IEndpointRouteBuilder app)
         {
-            app.MapPost("/basket", async (StoreBasketRequest request, ISender sender) =>
+            app.MapPost("/", async (StoreBasketRequest request, ISender sender) =>
             {
                 var command = request.ToStoreBasketCommand();
 
