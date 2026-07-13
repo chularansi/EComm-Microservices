@@ -8,6 +8,9 @@ services:
   distributedcache:
     image: redis
 
+  orderdb:
+    image: postgres:17.4
+
   catalog.api:
     image: ${DOCKER_REGISTRY-}catalogapi
     build:
@@ -19,4 +22,10 @@ services:
     build:
       context: .
       dockerfile: src/Services/Basket/Basket.API/Dockerfile
+
+  discount.grpc:
+    image: ${DOCKER_REGISTRY-}discountgrpc
+    build:
+      context: .
+      dockerfile: src/Services/Discount/Discount.Grpc/Dockerfile
 

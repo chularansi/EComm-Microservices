@@ -1,5 +1,6 @@
 using Basket.API.Basket;
 using BuildingBlocks.Exceptions.Handler;
+using Discount.Grpc;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
@@ -9,6 +10,8 @@ using System.Reflection;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+// Application Services
 var assembly = typeof(Program).Assembly;
 
 builder.Services.AddDispatcher(Assembly.GetExecutingAssembly());
@@ -19,6 +22,7 @@ builder.Services.AddPipelineBehavior(typeof(ValidationBehaviour<,>));
 
 builder.Services.AddValidatorsFromAssembly(assembly);
 
+// Data Services
 builder.Services.AddMarten(opts =>
 {
     opts.Connection(builder.Configuration.GetConnectionString("Database")!);
@@ -42,6 +46,23 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis")!;
     //options.InstanceName = "Basket";
 });
+
+//Grpc Services
+builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(options =>
+{
+    options.Address = new Uri(builder.Configuration["GrpcSettings:DiscountUrl"]!);
+    //options.Address = new Uri(builder.Configuration["GrpcSettings:DiscountUrl"] ?? "https://discount.grpc:8081");
+});
+//.ConfigurePrimaryHttpMessageHandler(() =>
+//{
+//    var handler = new HttpClientHandler
+//    {
+//        ServerCertificateCustomValidationCallback =
+//        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+//    };
+
+//    return handler;
+//}); // Use to bypass the ssl/tls connection in local development
 
 //Cross-Cutting Services
 builder.Services.AddExceptionHandler<CustomExceptionHandler>();
