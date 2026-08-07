@@ -1,4 +1,5 @@
-﻿using Basket.API.Basket.DeleteBasket;
+﻿using Basket.API.Basket.CheckoutBasket;
+using Basket.API.Basket.DeleteBasket;
 using Basket.API.Basket.GetBasket;
 using Basket.API.Basket.StoreBasket;
 
@@ -13,6 +14,7 @@ namespace Basket.API.Basket
             group.StoreBasket();
             group.DeleteBasket();
             group.GetBasket();
+            group.CheckoutBasket();
         }
     }
 }

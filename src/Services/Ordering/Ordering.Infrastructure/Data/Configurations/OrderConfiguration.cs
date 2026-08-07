@@ -1,8 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ordering.Domain.Enums;
-using Ordering.Domain.Models;
-using Ordering.Domain.ValueObjects;
 
 namespace Ordering.Infrastructure.Data.Configurations
 {
@@ -113,15 +110,21 @@ namespace Ordering.Infrastructure.Data.Configurations
 
             builder.Property(o => o.Status)
                 .HasDefaultValue(OrderStatus.Draft)
-                .HasConversion(
-                    s => s.ToString(),
-                    dbStatus => (OrderStatus)Enum.Parse(typeof(OrderStatus), dbStatus));
+            .HasConversion(
+                s => s.ToString(),
+                dbStatus => (OrderStatus)Enum.Parse(typeof(OrderStatus), dbStatus));
+            //.HasSentinel(OrderStatus.Unassigned)
+            //.HasConversion(
+            //    s => s.ToString(),
+            //    dbStatus => dbStatus != null
+            //        ? (OrderStatus)Enum.Parse(typeof(OrderStatus), dbStatus)
+            //        : OrderStatus.Draft);
 
             builder.Property(o => o.TotalPrice);
 
-            builder.HasIndex(o => new { o.Id, o.CreatedAt })
-                .HasDatabaseName("IX_Orders_Id_CreatedAt_Asc")
-                .IsDescending(false, false); // index has two properties (Id and CreatedAt), passing false, false explicitly sets both columns to ASC sorting
+            //builder.HasIndex(o => new { o.Id, o.CreatedAt })
+            //    .HasDatabaseName("IX_Orders_Id_CreatedAt_Asc")
+            //    .IsDescending(false, false); // index has two properties (Id and CreatedAt), passing false, false explicitly sets both columns to ASC sorting
         }
     }
 }

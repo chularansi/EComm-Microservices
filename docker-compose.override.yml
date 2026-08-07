@@ -1,4 +1,16 @@
 services:
+  userdb:
+    container_name: userdb
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=p@ssword
+      - POSTGRES_DB=UserDb
+    restart: always
+    ports:
+        - "5431:5432"
+    volumes:
+      - postgres_user:/var/lib/postgresql/data/
+
   catalogdb:
     container_name: catalogdb
     environment:
@@ -41,6 +53,55 @@ services:
     volumes:
       - postgres_order:/var/lib/postgresql/data/
 
+  kafka:
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" # Automatically create topics when an application tries to read or write to them.
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:4.0.1
+    container_name: kafdrop
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:29092"
+    depends_on:
+      - kafka
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://userdb:5432/UserDb
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: p@ssword
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./providers-keycloak:/opt/keycloak/providers/
+    command: ["start-dev"]
+    depends_on:
+      - userdb
+
   catalog.api:
     container_name: catalog-api
     environment:
@@ -73,10 +134,17 @@ services:
       - ConnectionStrings__Database=Server=basketdb;Port=5432;Database=BasketDb;User Id=postgres;Password=p@ssword;Include Error Detail=true
       - ConnectionStrings__Redis=distributedcache:6379
       - GrpcSettings__DiscountUrl=https://discount.grpc:8081
+      - Kafka__Producer__BootstrapServers=kafka:29092
+      - kafka__Consumer__BootstrapServers=kafka:29092
+      - kafka__Consumer__GroupId=ordering-service-group
+      - kafka__Consumer__AutoOffsetReset=Earliest
+      - kafka__Consumer__EnableAutoCommit=false
+      - FeatureManagement__EnableKafkaConsumer=true
     depends_on:
       - basketdb
       - distributedcache
       - discount.grpc
+      - kafka 
     ports:
       - "6001:8080"
       - "6061:8081"
@@ -96,6 +164,7 @@ services:
       # Kestrel Endpoints configuration via environment variables
       # - Kestrel__Endpoints__Https__Url=https://0.0.0
       # - Kestrel__Endpoints__Https__Protocols=Http2
+      # - Kestrel__Endpoints__Http__Protocols=Http1AndHttp2
       - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
       - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
       - ConnectionStrings__Database=Data Source=discountdb
@@ -109,8 +178,59 @@ services:
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
       - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
 
+  ordering.api:
+    container_name: ordering-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
+      - ConnectionStrings__Database=Server=orderdb;Port=5432;Database=OrderDb;User Id=postgres;Password=p@ssword;Include Error Detail=true
+      - Kafka__Producer__BootstrapServers=kafka:9092
+      - kafka__Consumer__BootstrapServers=kafka:9092
+      - kafka__Consumer__GroupId=ordering-service-group
+      - kafka__Consumer__AutoOffsetReset=Earliest
+      - kafka__Consumer__EnableAutoCommit=false
+      - FeatureManagement__EnableKafkaConsumer=true 
+    ports:
+      - "6003:8080"
+      - "6063:8081"
+    depends_on:
+      - orderdb
+      - kafka 
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+
+  yarpapigateways:
+    container_name: yarpapigateways
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
+    ports:
+      - "6004:8080"
+      - "6064:8081"
+    depends_on:
+      - catalog.api
+      - basket.api
+      - ordering.api
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+
 volumes:
   postgres_catalog:
   postgres_basket:
   postgres_order:
+  postgres_user:
 

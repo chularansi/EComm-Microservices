@@ -44,3 +44,26 @@
 //        }
 //    }
 //}
+
+// ----------------------- AI Generated Code -----------------------
+
+//public async Task<TResponse> Handle(TRequest request, CancellationToken cancellationToken, RequestHandlerDelegate<TResponse> next)
+//{
+//    // 1. Get the retrying execution strategy
+//    var strategy = _dbContext.Database.CreateExecutionStrategy();
+
+//    // 2. Execute the entire transaction block inside the strategy
+//    return await strategy.ExecuteAsync(async () =>
+//    {
+//        using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+//        // 3. Let the pipeline continue to your actual Command Handler
+//        var response = await next();
+
+//        // 4. Save and Commit safely
+//        await _dbContext.SaveChangesAsync(cancellationToken);
+//        await transaction.CommitAsync(cancellationToken);
+
+//        return response;
+//    });
+//}

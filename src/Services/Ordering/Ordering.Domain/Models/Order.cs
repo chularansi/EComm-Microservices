@@ -12,14 +12,20 @@ namespace Ordering.Domain.Models
         public Address ShippingAddress { get; private set; } = default!;
         public Address BillingAddress { get; private set; } = default!;
         public Payment Payment { get; private set; } = default!;
-        public OrderStatus Status { get; private set; } = OrderStatus.Pending;
+        public OrderStatus? Status { get; private set; } = OrderStatus.Pending;
         public decimal TotalPrice
         {
             get => OrderItems.Sum(x => x.Price * x.Quantity);
             private set { }
         }
 
-        public static Order Create(OrderId id, CustomerId customerId, OrderName orderName, Address shippingAddress, Address billingAddress, Payment payment)
+        public static Order Create(
+            OrderId id, 
+            CustomerId customerId, 
+            OrderName orderName, 
+            Address shippingAddress, 
+            Address billingAddress, 
+            Payment payment)
         {
             var order = new Order
             {
@@ -29,10 +35,10 @@ namespace Ordering.Domain.Models
                 ShippingAddress = shippingAddress,
                 BillingAddress = billingAddress,
                 Payment = payment,
-                Status = OrderStatus.Pending
+                Status = OrderStatus.Pending,
             };
 
-            order.AddDomainEvent(new OrderCreatedEvent(order));
+            order.AddDomainEvent(new OrderCreatedDomainEvent(order));
 
             return order;
         }
@@ -45,7 +51,7 @@ namespace Ordering.Domain.Models
             Payment = payment;
             Status = status;
 
-            AddDomainEvent(new OrderUpdatedEvent(this));
+            AddDomainEvent(new OrderUpdatedDomainEvent(this));
         }
 
         public void Add(ProductId productId, int quantity, decimal price)

@@ -1,4 +1,7 @@
 services:
+  userdb:
+    image: postgres:17.4
+
   catalogdb:
     image: postgres:17.4
 
@@ -10,6 +13,9 @@ services:
 
   orderdb:
     image: postgres:17.4
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
 
   catalog.api:
     image: ${DOCKER_REGISTRY-}catalogapi
@@ -28,4 +34,17 @@ services:
     build:
       context: .
       dockerfile: src/Services/Discount/Discount.Grpc/Dockerfile
+
+  ordering.api:
+    image: ${DOCKER_REGISTRY-}orderingapi
+    build:
+      context: .
+      dockerfile: src/Services/Ordering/Ordering.API/Dockerfile
+
+
+  yarpapigateways:
+    image: ${DOCKER_REGISTRY-}yarpapigateways
+    build:
+      context: .
+      dockerfile: src/ApiGateways/YarpApiGateways/Dockerfile
 

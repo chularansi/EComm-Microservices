@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -51,7 +50,7 @@ namespace Ordering.Infrastructure.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     CustomerId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Status = table.Column<string>(type: "text", nullable: false, defaultValue: "Draft"),
+                    Status = table.Column<string>(type: "text", nullable: true, defaultValue: "Draft"),
                     TotalPrice = table.Column<decimal>(type: "numeric", nullable: false),
                     BillingAddress_AddressLine = table.Column<string>(type: "character varying(180)", maxLength: 180, nullable: false),
                     BillingAddress_Country = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),

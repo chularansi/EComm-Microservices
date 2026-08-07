@@ -79,7 +79,6 @@ namespace Ordering.Infrastructure.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Status")
-                        .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("text")
                         .HasDefaultValue("Draft");
@@ -207,9 +206,6 @@ namespace Ordering.Infrastructure.Data.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("Id", "CreatedAt")
-                        .HasDatabaseName("IX_Orders_Id_CreatedAt_Asc");
-
                     b.ToTable("Orders");
                 });
 
@@ -279,6 +275,24 @@ namespace Ordering.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("Ordering.Infrastructure.Messaging.InboxMessages", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ProcessedOnUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InboxMessages");
                 });
 
             modelBuilder.Entity("Ordering.Domain.Models.Order", b =>

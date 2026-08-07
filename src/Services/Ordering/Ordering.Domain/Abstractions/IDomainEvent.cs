@@ -13,6 +13,6 @@ namespace Ordering.Domain.Abstractions
         //    }
         //}
         public DateTime OccurredOn => DateTime.Now;
-        public string EventType => GetType().AssemblyQualifiedName ?? string.Empty;
+        public string EventType => GetType().AssemblyQualifiedName!;
     }
 }

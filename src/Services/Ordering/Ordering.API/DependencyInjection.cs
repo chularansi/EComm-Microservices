@@ -1,7 +1,9 @@
-﻿using BuildingBlocks.Exceptions.Handler;
+﻿using BuildingBlocks.CQRS.Behaviours;
+using BuildingBlocks.Exceptions.Handler;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Ordering.API.Order;
+using System.Reflection;
 
 namespace Ordering.API
 {
@@ -10,6 +12,10 @@ namespace Ordering.API
         public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Add API services here
+            //services.AddDispatcher(Assembly.GetExecutingAssembly());
+            //services.AddPipelineBehavior(typeof(LoggingBehaviour<,>));
+            //services.AddPipelineBehavior(typeof(ValidationBehaviour<,>));
+
             services.AddExceptionHandler<CustomExceptionHandler>();
 
             services.AddHealthChecks().AddNpgSql(configuration.GetConnectionString("Database")!);

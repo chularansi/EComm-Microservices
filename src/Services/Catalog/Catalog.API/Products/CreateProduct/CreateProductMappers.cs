@@ -4,7 +4,7 @@
     {
         public static CreateProductCommand ToCreateProductCommand(this CreateProductRequest request)
         {
-            return new CreateProductCommand(request.Name, request.Category, request.Description, request.ImageFile, request.Price);
+            return new CreateProductCommand(request.Name, request.Category, request.Description, request.Color, request.ImageFile, request.Price);
         }
     
         public static CreateProductResponse ToCreateProductResponse(this CreateProductResult result)
