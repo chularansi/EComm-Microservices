@@ -13,7 +13,6 @@
                 var response = result.ToStoreBasketResponse();
 
                 return Results.Created($"/basket/{response.UserName}", response);
-                //return Results.Created($"/basket/{response.UserName}", response);
             })
             .WithName("CreateProduct")
             .Produces<StoreBasketResponse>(StatusCodes.Status201Created)

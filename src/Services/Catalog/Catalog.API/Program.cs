@@ -9,30 +9,30 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 //var certificate = LoadCertificate("certs/ecomm-microservices-api-cert.cert", "certs/ecomm-microservices-api-cert.key");
 
-var kestrel = builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate");
+//var kestrel = builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate");
 
-// Configure Kestrel to use HTTPS with the loaded cert.
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(5050, listenOptions =>
-    {
-        listenOptions.UseHttps(
-            kestrel.GetSection("Path").Value!,
-            kestrel.GetSection("Password").Value
-        );
-    });
-});
+//// Configure Kestrel to use HTTPS with the loaded cert.
+//builder.WebHost.ConfigureKestrel(options =>
+//{
+//    options.ListenAnyIP(5050, listenOptions =>
+//    {
+//        listenOptions.UseHttps(
+//            kestrel.GetSection("Path").Value!,
+//            kestrel.GetSection("Password").Value
+//        );
+//    });
+//});
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowGateway", policy =>
-    {
-        policy.WithOrigins("https://localhost:5054")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowGateway", policy =>
+//    {
+//        policy.WithOrigins("https://localhost:5054")
+//              .AllowAnyHeader()
+//              .AllowAnyMethod()
+//              .AllowCredentials();
+//    });
+//});
 
 var assembly = typeof(Program).Assembly;
 
@@ -62,7 +62,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 
 app.UseHttpsRedirection();
-app.UseCors("AllowGateway");
+//app.UseCors("AllowGateway");
 app.MapProductsEndpoints();
 app.UseExceptionHandler(options => { });
 

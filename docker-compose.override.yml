@@ -57,22 +57,72 @@ services:
     container_name: kafka
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      
+      # FIX: Ensure PLAINTEXT is bound to port 9092 for your internal docker containers
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093'
+      
+      # FIX: Advertises kafka:9092 for internal tools like Kafdrop/Keycloak and localhost:29092 for C# host apps
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092'
+      
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
-      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
-      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" # Automatically create topics when an application tries to read or write to them.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+      # -------------
+      # KAFKA_NODE_ID: 1
+      # KAFKA_PROCESS_ROLES: 'broker,controller'
+      # Correcting security protocol maps to use your explicit names
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      
+      # FIX: Aligned port bindings cleanly
+      # PLAINTEXT handles internal container traffic on 9092
+      # PLAINTEXT_HOST handles external windows host traffic on 29092
+      # KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093'
+      
+      # FIX: Aligned advertised endpoints with their true listener ports
+      # KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092'
+      
+      # KRaft Quorum configuration using the dedicated controller port
+      # KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      # KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      # KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      
+      # Restoring all your specific storage, transactional, and auto-create rules
+      # KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      # CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      # ----------------
+      # KAFKA_NODE_ID: 1
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      # KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092'
+      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      # KAFKA_PROCESS_ROLES: 'broker,controller'
+      # KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      # KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      # KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      # KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      # KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      # CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      # KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true" Automatically create topics when an application tries to read or write to them.
 
   kafdrop:
     image: obsidiandynamics/kafdrop:4.0.1
@@ -80,7 +130,8 @@ services:
     ports:
       - "9000:9000"
     environment:
-      KAFKA_BROKERCONNECT: "kafka:29092"
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      # KAFKA_BROKERCONNECT: "kafka:29092"
     depends_on:
       - kafka
 
@@ -96,11 +147,15 @@ services:
       KC_DB_PASSWORD: p@ssword
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092" # Use your docker-compose kafka service name
+      KAFKA_TOPIC: "KeycloakUserIntegrationEvent"
+      KAFKA_CLIENT_ID: "keycloak-auth-server"
     volumes:
-      - ./providers-keycloak:/opt/keycloak/providers/
+      - ./providers-keycloak:/opt/keycloak/providers:Z
     command: ["start-dev"]
     depends_on:
       - userdb
+      - kafka 
 
   catalog.api:
     container_name: catalog-api
@@ -108,11 +163,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
-      - ConnectionStrings__Database=Server=catalogdb;Port=5432;Database=CatalogDb;User Id=postgres;Password=p@ssword;Include Error Detail=true
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/server.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=${CERT_PASSWORD}
+      - ConnectionStrings__Database=Server=catalogdb;Port=5432;Database=CatalogDb;User Id=postgres;Password=${DB_PASSWORD};Include Error Detail=true
     depends_on:
-      - catalogdb
+      - catalogdb 
     ports:
       - "6000:8080"
       - "6060:8081"
@@ -121,7 +176,7 @@ services:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+      - ./src/Services/Catalog/Catalog.API/certs/server.pfx:/app/certs/server.pfx:ro
 
   basket.api:
     container_name: basket-api
@@ -129,9 +184,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
-      - ConnectionStrings__Database=Server=basketdb;Port=5432;Database=BasketDb;User Id=postgres;Password=p@ssword;Include Error Detail=true
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/server.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=${CERT_PASSWORD}
+      - ConnectionStrings__Database=Server=basketdb;Port=5432;Database=BasketDb;User Id=postgres;Password=${DB_PASSWORD};Include Error Detail=true
       - ConnectionStrings__Redis=distributedcache:6379
       - GrpcSettings__DiscountUrl=https://discount.grpc:8081
       - Kafka__Producer__BootstrapServers=kafka:29092
@@ -153,7 +208,8 @@ services:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+      # Host path : Container path : Read-Only flag
+      - ./src/Services/Basket/Basket.API/certs/server.pfx:/app/certs/server.pfx:ro
 
   discount.grpc:
     container_name: discount-grpc
@@ -161,12 +217,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      # Kestrel Endpoints configuration via environment variables
-      # - Kestrel__Endpoints__Https__Url=https://0.0.0
-      # - Kestrel__Endpoints__Https__Protocols=Http2
-      # - Kestrel__Endpoints__Http__Protocols=Http1AndHttp2
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/server.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=${CERT_PASSWORD}
       - ConnectionStrings__Database=Data Source=discountdb
     ports:
       - "6002:8080"
@@ -176,7 +228,7 @@ services:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+      - ./src/Services/Discount/Discount.Grpc/certs/server.pfx:/app/certs/server.pfx:ro
 
   ordering.api:
     container_name: ordering-api
@@ -184,9 +236,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
-      - ConnectionStrings__Database=Server=orderdb;Port=5432;Database=OrderDb;User Id=postgres;Password=p@ssword;Include Error Detail=true
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/server.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=${CERT_PASSWORD}
+      - ConnectionStrings__Database=Server=orderdb;Port=5432;Database=OrderDb;User Id=postgres;Password=${DB_PASSWORD};Include Error Detail=true
       - Kafka__Producer__BootstrapServers=kafka:9092
       - kafka__Consumer__BootstrapServers=kafka:9092
       - kafka__Consumer__GroupId=ordering-service-group
@@ -204,7 +256,7 @@ services:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+      - ./src/Services/Ordering/Ordering.API/certs/server.pfx:/app/certs/server.pfx:ro
 
   yarpapigateways:
     container_name: yarpapigateways
@@ -212,8 +264,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
       - ASPNETCORE_HTTPS_PORTS=8081
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/ecomm-microservices-api-cert.pfx
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=p@ssword
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/server.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=${CERT_PASSWORD}
     ports:
       - "6004:8080"
       - "6064:8081"
@@ -226,11 +278,12 @@ services:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
-      - D:/Chula/Courses/C-Sharp/Certs-For-CSharp/:/https/
+      - ./src/Services/Basket/Basket.API/certs/server.pfx:/app/certs/server.pfx:ro
 
 volumes:
   postgres_catalog:
   postgres_basket:
   postgres_order:
   postgres_user:
+
 

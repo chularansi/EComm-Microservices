@@ -277,7 +277,7 @@ namespace Ordering.Infrastructure.Data.Migrations
                     b.ToTable("Products");
                 });
 
-            modelBuilder.Entity("Ordering.Infrastructure.Messaging.InboxMessages", b =>
+            modelBuilder.Entity("Ordering.Infrastructure.Messaging.InboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()

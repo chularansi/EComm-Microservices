@@ -5,7 +5,6 @@ using Ordering.Application.Orders.CreateOrder;
 using Ordering.Infrastructure;
 using Ordering.Infrastructure.Data;
 using Ordering.Infrastructure.Extensions;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 

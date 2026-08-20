@@ -3,6 +3,16 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Ignore local environment secret files
+.env
+.env.local
+.env.*.local
+
+# Ignore actual certificate files if they contain private keys
+*.pfx
+*.crt
+*.key
+
 # User-specific files
 *.rsuser
 *.suo

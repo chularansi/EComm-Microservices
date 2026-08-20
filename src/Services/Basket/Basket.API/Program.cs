@@ -46,6 +46,8 @@ builder.Services.AddSingleton(kafkaProducerConfig!);
 builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
 
 // Code below is used to add multiple dependancy injection caching to the BasketRepository in manually.
+// Without using Scrutor's Decorate method, you can manually register the CachedBasketRepository as a decorator for the BasketRepository.
+// However, this approach is less clean and more error-prone than using Scrutor's Decorate method.
 //builder.Services.AddScoped<IBasketRepository>(sp => 
 //    new CachedBasketRepository(
 //        sp.GetRequiredService<BasketRepository>(), 

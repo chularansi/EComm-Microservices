@@ -10,6 +10,9 @@
     <DockerServiceName>basket.api</DockerServiceName>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="keycloak-plugins\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="docker-compose.override.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>

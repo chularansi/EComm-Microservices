@@ -7,10 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 //var certificate = LoadCertificate("certs/ecomm-microservices-api-cert.cert", "certs/ecomm-microservices-api-cert.key");
 
+// Comment this line for when create docker container
 var kestrel = builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate");
 
 // Configure Kestrel to use HTTPS with the loaded cert.
 // Extract string values from IConfigurationSection using .Value property
+// // Comment this line for when create docker container
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(5054, listenOptions =>
@@ -56,7 +58,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-
+app.UseWebSockets();
 app.UseHttpsRedirection();
 // Make sure app.UseCors is placed BEFORE app.UseRouting() and app.MapReverseProxy()
 app.UseCors("ShoppingWebReactApp");

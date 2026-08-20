@@ -19,5 +19,14 @@
 
             return customer;
         }
+
+        public void Update(string name, string email)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            ArgumentException.ThrowIfNullOrWhiteSpace(email);
+
+            Name = name;
+            Email = email;
+        }
     }
 }

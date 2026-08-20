@@ -46,70 +46,96 @@ namespace Ordering.Infrastructure
             services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
             // ==========================================
-            // Kafka Producer Configuration 
+            // Kafka Producer | Consumer Configuration 
             // ==========================================
 
-            var kafkaProducerConfig = configuration
-                .GetSection("Kafka:Producer")
-                .Get<ProducerConfig>() ?? new ProducerConfig();
+            // 1. Core Config Bindings
+            var kafkaProducerConfig = configuration.GetSection("Kafka:Producer").Get<ProducerConfig>() ?? new ProducerConfig();
+            var kafkaConsumerConfig = configuration.GetSection("Kafka:Consumer").Get<ConsumerConfig>() ?? new ConsumerConfig();
 
             services.AddSingleton(kafkaProducerConfig);
-            services.AddSingleton<IKafkaProducer, KafkaProducer>();
+            services.AddSingleton(kafkaConsumerConfig);
 
-            var kafkaConsumerConfig = configuration
-                .GetSection("Kafka:Consumer")
-                .Get<ConsumerConfig>() ?? new ConsumerConfig();
+            // 2. Concrete Implementation Registrations
+            services.AddSingleton<IKafkaProducer, KafkaProducer>();
+            services.AddSingleton<IKafkaConsumer, KafkaConsumer>();
 
             // ==========================================
             // Basket Checkout Worker Configuration
             // ==========================================
-
             var basketConsumerConfig = new ConsumerConfig(kafkaConsumerConfig)
             {
-                GroupId = "basket-checkout-consumer-group", // Keeps groups isolated
-                MaxPollIntervalMs = 3600000 // 1 Hour window for debugging breakpoints!
+                GroupId = "basket-checkout-consumer-group",
+                MaxPollIntervalMs = 3600000
             };
 
-            // Register your handler as Scoped (or Transient)! It can now safely use DbContext
             services.AddScoped<IIntegrationEventHandler<BasketCheckoutIntegrationEvent>, BasketCheckoutIntegrationEventHandler>();
 
-            services.AddHostedService(sp => new KafkaConsumerWorker<BasketCheckoutIntegrationEvent>(
-                new KafkaConsumer(basketConsumerConfig),
-                new KafkaProducer(kafkaProducerConfig),
-                nameof(BasketCheckoutIntegrationEvent),
-                sp.GetRequiredService<IServiceScopeFactory>(), // Pass the factory here
-                sp.GetRequiredService<ILogger<KafkaConsumerWorker<BasketCheckoutIntegrationEvent>>>()
-            ));
+            // Use ActivatorUtilities or pass factory instances correctly using the service provider
+            services.AddHostedService(sp =>
+            {
+                // Construct the isolated consumer for this specific background loop safely
+                var consumerInstance = new KafkaConsumer(basketConsumerConfig);
+
+                return new KafkaConsumerWorker<BasketCheckoutIntegrationEvent>(
+                    consumerInstance,
+                    sp.GetRequiredService<IKafkaProducer>(), // Resolve safely from container
+                    "BasketCheckoutIntegrationEvent", // Ensure this matches producer topic string exactly
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILogger<KafkaConsumerWorker<BasketCheckoutIntegrationEvent>>>()
+                );
+            });
+
+            // ==========================================
+            // Customer Created Worker Configuration
+            // ==========================================
+
+            var customerConsumerConfig = new ConsumerConfig(kafkaConsumerConfig)
+            {
+                GroupId = "customer-managing-consumer-group",
+                MaxPollIntervalMs = 3600000
+            };
+
+            // Register your handler to the scoped DI container
+            services.AddScoped<IIntegrationEventHandler<KeycloakUserIntegrationEvent>, KeycloakUserIntegrationEventHandler>();
+
+            // Append the background loop worker to the hosted services collection
+            services.AddHostedService(sp =>
+            {
+                var consumerInstance = new KafkaConsumer(customerConsumerConfig);
+
+                return new KafkaConsumerWorker<KeycloakUserIntegrationEvent>(
+                    consumerInstance,
+                    sp.GetRequiredService<IKafkaProducer>(),
+                    "KeycloakUserIntegrationEvent", // Ensure your Identity/User service publishes to this exact topic name string
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILogger<KafkaConsumerWorker<KeycloakUserIntegrationEvent>>>()
+                );
+            });
 
             // ==========================================
             // Order Created Worker Configuration
             // ==========================================
-
             var orderConsumerConfig = new ConsumerConfig(kafkaConsumerConfig)
             {
                 GroupId = "order-created-consumer-group",
-                MaxPollIntervalMs = 3600000 // 1 Hour window for debugging breakpoints!
+                MaxPollIntervalMs = 3600000
             };
 
-            // Register your handler as Scoped (or Transient)!
             services.AddScoped<IIntegrationEventHandler<OrderCreatedIntegrationEvent>, OrderCreatedIntegrationEventHandler>();
 
-            services.AddHostedService(sp => new KafkaConsumerWorker<OrderCreatedIntegrationEvent>(
-                new KafkaConsumer(orderConsumerConfig),
-                new KafkaProducer(kafkaProducerConfig),
-                nameof(OrderCreatedIntegrationEvent),
-                sp.GetRequiredService<IServiceScopeFactory>(), // Pass the factory here
-                sp.GetRequiredService<ILogger<KafkaConsumerWorker<OrderCreatedIntegrationEvent>>>()
-            ));
+            services.AddHostedService(sp =>
+            {
+                var consumerInstance = new KafkaConsumer(orderConsumerConfig);
 
-            var bootstrapServers = kafkaProducerConfig.BootstrapServers
-                ?? throw new InvalidOperationException("Kafka bootstrap servers not configured.");
-
-            //await KafkaTopicProvisioner.EnsureTopicsExistAsync(
-            //    bootstrapServers,
-            //    "BasketCheckoutIntegrationEvent",
-            //    "OrderCreatedIntegrationEvent"
-            //);
+                return new KafkaConsumerWorker<OrderCreatedIntegrationEvent>(
+                    consumerInstance,
+                    sp.GetRequiredService<IKafkaProducer>(), // Resolve safely from container
+                    "OrderCreatedIntegrationEvent",
+                    sp.GetRequiredService<IServiceScopeFactory>(),
+                    sp.GetRequiredService<ILogger<KafkaConsumerWorker<OrderCreatedIntegrationEvent>>>()
+                );
+            });
 
             return services;
         }
